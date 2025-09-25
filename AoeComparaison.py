@@ -1,4 +1,4 @@
-# Streamlit app: Comparateur de civilisations (2 civs)
+# Streamlit app: Comparateur de civilisations (simplifié)
 # Usage:
 # 1) Installer dependencies: pip install streamlit pandas matplotlib
 # 2) Lancer: streamlit run Comparateur_de_civs_streamlit.py
@@ -64,90 +64,74 @@ CIV_DATA = {
     'Chinese': {'Early':43,'Mid':45,'Late':48,'Very late':49},
 }
 
-# Stratégies connues (exemples)
 STRATEGIES = {
     'Vikings': [
         {'name':'Infantry Boom','tag':'infantry_boom','description':'Boom eco and mass infantry (infantry/cavalry transition).','bo_exists':True},
         {'name':'Drush Into Feudal','tag':'drush_feudal','description':'Early drush pressure followed by feudal aggression.','bo_exists':False}
     ],
     'Malais': [
-        {'name':'Scout Rush','tag':'scout_rush','description':'Fast scouts with aggressive raiding (maps with open fields).','bo_exists':True},
+        {'name':'Scout Rush','tag':'scout_rush','description':'Fast scouts with aggressive raiding.','bo_exists':True},
         {'name':'Tower Rush','tag':'tower_rush','description':'Cheesy tower rush (map dependent).','bo_exists':True}
     ],
     'Bourguignons': [
         {'name':'Knight Led Push','tag':'knight_push','description':'Exploit strong knights and upgrades.','bo_exists':True}
     ],
-    # Add other civs as needed
 }
 
-# Build orders (sample markdown content stored locally/in memory). In a real project
-# these could be files on disk or records in a DB. Keys are strategy 'tag'.
 BUILD_ORDERS = {
     'infantry_boom': """
 # Build Order: Infantry Boom (Vikings)
-
 - 6 on sheep
 - 3 on wood
-- Build houses as needed
-- Click up at 27-28 villagers to Feudal
-- Mass farms and blacksmith upgrades
-- Move to aggressive kebab... (example)
+- Click up at 27-28 villagers
+- Mass farms + blacksmith upgrades
 """,
     'drush_feudal': """
 # Build Order: Drush -> Feudal
-
 - 3 on sheep
 - 4 on wood
-- 2 on lure boar (if possible)
-- Create 2 militia at 6-7 mins
+- 2 on boar
+- Create 2 militia ~6-7 mins
 """,
     'scout_rush': """
 # Build Order: Scout Rush (Malais)
-
 - 6 on sheep
 - 4 on wood
 - 3 on berries
 - Build stable at Feudal ~10:30
-- Pump scouts and raid
 """,
     'tower_rush': """
 # Build Order: Tower Rush (Malais)
-
 - Early wood heavy
-- Build forward towers with villagers
-- Deny opponent economy
+- Forward towers with villagers
 """,
     'knight_push': """
 # Build Order: Knight Push (Bourguignons)
-
 - Standard scout/eco
-- Click up to Castle with ~28-30 vills
-- Mass knights and research husbandry
+- Click up Castle ~28-30 vills
+- Mass knights + husbandry
 """
 }
 
-# Remarques par civ (conseils, pièges)
 REMARKS = {
     'Vikings': [
-        "Vulnérable aux monks en fin de partie contre unités infanterie massives.",
-        "Très bonnes économies maritimes (coinaires), attention aux raids de cavalerie si mal géré."
+        "Vulnérable aux monks en fin de partie.",
+        "Excellente économie maritime, attention aux raids de cavalerie."
     ],
     'Malais': [
-        "Connu pour des stratégies de scout rush et tower rush (cheesy).",
-        "Lente montée en âges (bon sur les cartes longues)."
+        "Stratégies scout rush et tower rush fréquentes.",
+        "Montée en âges rapide mais fragile si rushée."
     ],
     'Bourguignons': [
-        "Fort en chevalerie : attention aux menaces anti-chevalerie (pikemen, monks)."],
+        "Fort en chevalerie, attention aux piquiers et moines."
+    ],
 }
 
 # ---------------------------
 # Fonctions utilitaires
 # ---------------------------
-
 def civ_to_series(civ_name):
-    data = CIV_DATA.get(civ_name)
-    if not data:
-        return pd.Series({'Early':0,'Mid':0,'Late':0,'Very late':0})
+    data = CIV_DATA.get(civ_name, {'Early':0,'Mid':0,'Late':0,'Very late':0})
     return pd.Series(data)
 
 def make_comparison_df(civ1, civ2):
@@ -157,7 +141,6 @@ def make_comparison_df(civ1, civ2):
     df.set_index('Period', inplace=True)
     return df
 
-# Radar plot helper
 def radar_plot(df, civ1, civ2):
     labels = df.index.tolist()
     stats1 = df[civ1].values
@@ -169,108 +152,72 @@ def radar_plot(df, civ1, civ2):
 
     fig = plt.figure(figsize=(6,6))
     ax = fig.add_subplot(111, polar=True)
-    ax.plot(angles, stats1, marker='o')
+    ax.plot(angles, stats1, marker='o', label=civ1)
     ax.fill(angles, stats1, alpha=0.1)
-    ax.plot(angles, stats2, marker='o')
+    ax.plot(angles, stats2, marker='o', label=civ2)
     ax.fill(angles, stats2, alpha=0.1)
     ax.set_thetagrids(angles[:-1]*180/np.pi, labels)
     ax.set_title(f"Comparaison: {civ1} vs {civ2}")
+    ax.legend(loc='upper right')
     ax.set_ylim(0, max(df.max().max(), 10))
     return fig
 
 # ---------------------------
 # Streamlit UI
 # ---------------------------
-
 st.set_page_config(page_title="Comparateur de civilisations", layout='wide')
-st.title("Comparateur de civilisations — Early / Mid / Late / Very late")
+st.title("⚔️ Comparateur de civilisations")
 
 # Sidebar
 st.sidebar.header('Sélection')
 all_civs = sorted(list(CIV_DATA.keys()))
-civ1 = st.sidebar.selectbox('Civ 1', all_civs, index=all_civs.index('Vikings') if 'Vikings' in all_civs else 0)
-civ2 = st.sidebar.selectbox('Civ 2', all_civs, index=all_civs.index('Malais') if 'Malais' in all_civs else 1)
+civ1 = st.sidebar.selectbox('Civ 1', all_civs, index=all_civs.index('Vikings'))
+civ2 = st.sidebar.selectbox('Civ 2', all_civs, index=all_civs.index('Malais'))
 
 st.sidebar.markdown('---')
 show_radar = st.sidebar.checkbox('Afficher radar', value=True)
 show_line = st.sidebar.checkbox('Afficher graphique en lignes', value=True)
 
-# Main layout
-col1, col2 = st.columns([1,1])
-
-with col1:
-    st.subheader('Tableau comparatif')
-    comp_df = make_comparison_df(civ1, civ2)
-    st.dataframe(comp_df.style.format('{:.0f}'))
-
-    # Export CSV button
-    csv = comp_df.to_csv().encode('utf-8')
-    st.download_button(label='Télécharger le tableau CSV', data=csv, file_name=f'comparaison_{civ1}_vs_{civ2}.csv', mime='text/csv')
-
-with col2:
-    st.subheader('Graphiques')
-    if show_line:
-        fig_line, ax = plt.subplots()
-        comp_df.plot(kind='line', marker='o', ax=ax)
-        ax.set_ylabel('Score')
-        ax.set_xticks(range(len(comp_df.index)))
-        ax.set_xticklabels(comp_df.index)
-        st.pyplot(fig_line)
-    if show_radar:
-        fig_rad = radar_plot(comp_df, civ1, civ2)
-        st.pyplot(fig_rad)
+# Graphiques
+st.subheader('Graphiques comparatifs')
+comp_df = make_comparison_df(civ1, civ2)
+if show_line:
+    fig_line, ax = plt.subplots()
+    comp_df.plot(kind='line', marker='o', ax=ax)
+    ax.set_ylabel('Score')
+    ax.set_xticks(range(len(comp_df.index)))
+    ax.set_xticklabels(comp_df.index)
+    st.pyplot(fig_line)
+if show_radar:
+    fig_rad = radar_plot(comp_df, civ1, civ2)
+    st.pyplot(fig_rad)
 
 st.markdown('---')
 
-# Strategies and clickable build orders
+# Stratégies & BO
 st.subheader('Stratégies connues & Build Orders')
 left, right = st.columns(2)
 
-with left:
-    st.markdown(f'### {civ1}')
-    strategies1 = STRATEGIES.get(civ1, [])
-    if not strategies1:
-        st.info('Aucune stratégie renseignée pour cette civ (ajoute des données dans STRATEGIES).')
-    for strat in strategies1:
-        cols = st.columns([6,1])
+for civ, col in zip([civ1, civ2], [left, right]):
+    col.markdown(f'### {civ}')
+    strategies = STRATEGIES.get(civ, [])
+    if not strategies:
+        col.info("Aucune stratégie renseignée pour cette civ.")
+    for strat in strategies:
+        cols = col.columns([6,1])
         cols[0].markdown(f"**{strat['name']}**  \n*{strat['description']}*")
         if strat.get('bo_exists'):
-            if cols[1].button('Voir BO', key=f"{civ1}_{strat['tag']}"):
+            if cols[1].button('Voir BO', key=f"{civ}_{strat['tag']}"):
                 bo_text = BUILD_ORDERS.get(strat['tag'], 'Build order introuvable.')
-                st.markdown(f"#### Build Order — {strat['name']}")
-                st.code(bo_text)
-
-with right:
-    st.markdown(f'### {civ2}')
-    strategies2 = STRATEGIES.get(civ2, [])
-    if not strategies2:
-        st.info('Aucune stratégie renseignée pour cette civ (ajoute des données dans STRATEGIES).')
-    for strat in strategies2:
-        cols = st.columns([6,1])
-        cols[0].markdown(f"**{strat['name']}**  \n*{strat['description']}*")
-        if strat.get('bo_exists'):
-            if cols[1].button('Voir BO', key=f"{civ2}_{strat['tag']}"):
-                bo_text = BUILD_ORDERS.get(strat['tag'], 'Build order introuvable.')
-                st.markdown(f"#### Build Order — {strat['name']}")
-                st.code(bo_text)
+                col.markdown(f"#### Build Order — {strat['name']}")
+                col.code(bo_text)
 
 st.markdown('---')
 
-# Remarks
+# Remarques
 st.subheader('Remarques & conseils')
 cols = st.columns(2)
-with cols[0]:
-    st.markdown(f'**{civ1}**')
-    for r in REMARKS.get(civ1, ['Aucune remarque enregistrée.']):
-        st.write('- ' + r)
-with cols[1]:
-    st.markdown(f'**{civ2}**')
-    for r in REMARKS.get(civ2, ['Aucune remarque enregistrée.']):
-        st.write('- ' + r)
-
-st.markdown('---')
-
-# Notes pour extension
-st.caption('Développements possibles : liaison vers une base de données de BOs, importer des BOs depuis des fichiers markdown, ajout d\'un filtrage par stratégie (eco, rush, boom), et export PDF automatique.')
-
-# End of file
+for civ, col in zip([civ1, civ2], cols):
+    col.markdown(f'**{civ}**')
+    for r in REMARKS.get(civ, ['Aucune remarque enregistrée.']):
+        col.write('- ' + r)
