@@ -1,0 +1,22 @@
+{
+  "Vikings": {
+    "scores": {"Early": 46, "Mid": 49, "Late": 57, "Very late": 52},
+    "remarks": [
+      "Vulnérable aux monks en fin de partie.",
+      "Excellente économie maritime, attention aux raids de cavalerie."
+    ]
+  },
+  "Malais": {
+    "scores": {"Early": 49, "Mid": 56, "Late": 55, "Very late": 50},
+    "remarks": [
+      "Stratégies scout rush et tower rush fréquentes.",
+      "Montée en âges rapide mais fragile si rushée."
+    ]
+  },
+  "Bourguignons": {
+    "scores": {"Early": 38, "Mid": 36, "Late": 49, "Very late": 50},
+    "remarks": [
+      "Fort en chevalerie, attention aux piquiers et moines."
+    ]
+  }
+}
