@@ -19,6 +19,8 @@ if mode == "Comparateur de civs":
 
     df = cm.load_all_as_df()
     comp_df = df[df["Civ"].isin([civ1, civ2])].set_index("Civ")[["Early", "Mid", "Late", "Very late"]]
+    comp_df = comp_df.astype(int)
+    comp_df = comp_df.fillna(0).astype(int)
 
     st.subheader("Graphique comparatif")
     fig, ax = plt.subplots()

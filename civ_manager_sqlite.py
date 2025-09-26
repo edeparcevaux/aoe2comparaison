@@ -2,7 +2,7 @@ import sqlite3
 from pathlib import Path
 import pandas as pd
 
-DB_PATH = Path("civs.db")
+DB_PATH = Path("aoe2.db")
 
 class CivManager:
     def __init__(self, db_path=DB_PATH):
