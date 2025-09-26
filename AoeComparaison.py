@@ -1,71 +1,67 @@
 import streamlit as st
 import matplotlib.pyplot as plt
-from civ_manager_sqlite import CivManager
 import pandas as pd
+from civ_manager_sqlite import CivManager
 
 cm = CivManager()
 
-st.title("⚔️ Gestion & Comparaison des civilisations")
+# ---------------------------
+# Sidebar: choix mode
+# ---------------------------
+mode = st.sidebar.radio("Mode", ["Comparateur de civs", "Édition de civ"])
 
-# Choix de la page
-page = st.sidebar.selectbox("Page", ["Comparateur", "Édition"])
+if mode == "Comparateur de civs":
+    st.title("⚔️ Comparateur de civilisations")
 
-if page == "Comparateur":
     civs = cm.list_civs()
-    civ1 = st.selectbox("Choisir la première civilisation", civs, index=0 if civs else None)
-    civ2 = st.selectbox("Choisir la seconde civilisation", civs, index=1 if len(civs) > 1 else None)
+    civ1 = st.selectbox("Choisir la première civilisation", civs)
+    civ2 = st.selectbox("Choisir la seconde civilisation", civs)
 
-    if civ1 and civ2:
-        df = cm.load_all_as_df()
-        comp_df = df[df["nom"].isin([civ1, civ2])].set_index("nom")[["early","mid","late","very_late"]]
+    df = cm.load_all_as_df()
+    comp_df = df[df["Civ"].isin([civ1, civ2])].set_index("Civ")[["Early", "Mid", "Late", "Very late"]]
 
-        st.subheader("📊 Graphique comparatif")
-        fig, ax = plt.subplots()
-        comp_df.T.plot(kind="line", marker="o", ax=ax)
-        ax.set_ylabel("Score")
-        ax.set_xlabel("Phase du jeu")
-        ax.set_title(f"Comparaison : {civ1} vs {civ2}")
-        st.pyplot(fig)
+    st.subheader("Graphique comparatif")
+    fig, ax = plt.subplots()
+    comp_df.T.plot(kind="line", marker="o", ax=ax)
+    ax.set_ylabel("Score")
+    st.pyplot(fig)
 
-        st.subheader("📋 Détails")
-        for civ in [civ1, civ2]:
-            civ_data = cm.get_civ(civ)
-            if civ_data:
-                st.markdown(f"### {civ_data['nom']}")
-                st.table({
-                    "Early":[civ_data["early"]],
-                    "Mid":[civ_data["mid"]],
-                    "Late":[civ_data["late"]],
-                    "Very late":[civ_data["very_late"]],
-                })
-                if civ_data["remarque"]:
-                    st.info(f"💡 Remarque : {civ_data['remarque']}")
+    st.markdown("---")
+    st.subheader("Remarques & Build Orders")
+    for civ in [civ1, civ2]:
+        data = cm.get_civ(civ)
+        st.markdown(f"### {civ}")
+        st.write("- " + data.get("remarque","Aucune remarque enregistrée."))
+        bo_id = data.get("bo_id")
+        if bo_id:
+            bo = cm.get_bo(bo_id)
+            if bo:
+                with st.expander(f"Voir Build Order: {bo[1]}"):
+                    st.markdown(bo[3])
 
-elif page == "Édition":
+elif mode == "Édition de civ":
+    st.title("🛠️ Édition d'une civilisation")
     civs = cm.list_civs()
-    civ_selected = st.selectbox("Choisir une civilisation à éditer", civs)
-    civ_data = cm.get_civ(civ_selected)
+    civ_name = st.selectbox("Choisir une civilisation", civs)
 
-    if civ_data:
-        st.subheader(f"Édition : {civ_data['nom']}")
+    civ = cm.get_civ(civ_name)
+    if civ is None:
+        st.warning("Civilisation non trouvée.")
+    else:
+        st.subheader(f"Édition: {civ_name}")
+        cols = st.columns(4)
+        early = cols[0].number_input("Early", value=civ["early"], step=1)
+        mid = cols[1].number_input("Mid", value=civ["mid"], step=1)
+        late = cols[2].number_input("Late", value=civ["late"], step=1)
+        very_late = cols[3].number_input("Very late", value=civ["very_late"], step=1)
 
-        # Édition des scores
-        col1, col2, col3, col4 = st.columns(4)
-        early = col1.number_input("Early", value=civ_data["early"], min_value=0, max_value=100)
-        mid = col2.number_input("Mid", value=civ_data["mid"], min_value=0, max_value=100)
-        late = col3.number_input("Late", value=civ_data["late"], min_value=0, max_value=100)
-        very_late = col4.number_input("Very late", value=civ_data["very_late"], min_value=0, max_value=100)
+        remarque = st.text_area("Remarque", value=civ.get("remarque",""))
 
-        # Édition des remarques
-        remarque = st.text_area("Remarques", value=civ_data["remarque"])
+        bos = cm.list_bos()
+        bo_dict = {f"{b[1]} ({b[0]})": b[0] for b in bos}
+        bo_choice = st.selectbox("Build Order associé (facultatif)", ["Aucun"] + list(bo_dict.keys()))
+        bo_id = bo_dict.get(bo_choice, None) if bo_choice != "Aucun" else None
 
-        if st.button("💾 Sauvegarder"):
-            cm.save_civ({
-                "nom": civ_selected,
-                "early": early,
-                "mid": mid,
-                "late": late,
-                "very_late": very_late,
-                "remarque": remarque
-            })
-            st.success(f"Civilisation {civ_selected} sauvegardée !")
+        if st.button("Sauvegarder"):
+            cm.update_civ(civ_name, early, mid, late, very_late, remarque, bo_id)
+            st.success("Civilisation mise à jour.")
