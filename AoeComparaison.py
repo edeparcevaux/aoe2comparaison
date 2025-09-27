@@ -11,16 +11,29 @@ cm = CivManager()
 mode = st.sidebar.radio("Mode", ["Comparateur de civs", "Édition de civ", "BO"])
 
 
+# ---------------------------
+# Mode Comparateur
+# ---------------------------
 if mode == "Comparateur de civs":
     st.title("⚔️ Comparateur de civilisations")
 
-    civs = cm.list_civs()
-    civ1 = st.sidebar.selectbox('Civ 1', civs, index=civs.index('Vikings'))
-    civ2 = st.sidebar.selectbox('Civ 2', civs, index=civs.index('Malais'))
+    civs = cm.list_civs()  # [(id, nom), ...]
+    civ1 = st.sidebar.selectbox(
+        "Civ 1",
+        civs,
+        format_func=lambda x: x[1],
+        index=[c[1] for c in civs].index("Vikings")
+    )
+    civ2 = st.sidebar.selectbox(
+        "Civ 2",
+        civs,
+        format_func=lambda x: x[1],
+        index=[c[1] for c in civs].index("Malais")
+    )
 
+    # DataFrame avec scores
     df = cm.load_all_as_df()
-    comp_df = df[df["Civ"].isin([civ1, civ2])].set_index("Civ")[["Early", "Mid", "Late", "Very late"]]
-    comp_df = comp_df.astype(int)
+    comp_df = df[df["Civ"].isin([civ1[1], civ2[1]])].set_index("Civ")[["Early", "Mid", "Late", "Very late"]]
     comp_df = comp_df.fillna(0).astype(int)
 
     st.subheader("Graphique comparatif")
@@ -29,46 +42,114 @@ if mode == "Comparateur de civs":
     ax.set_ylabel("Score")
     st.pyplot(fig)
 
+    # --- Remarques & BO
     st.markdown("---")
     st.subheader("Remarques & Build Orders")
-    for civ in [civ1, civ2]:
-        data = cm.get_civ(civ)
-        st.markdown(f"### {civ}")
-        st.write("- " + data.get("remarque","Aucune remarque enregistrée."))
-        bo_id = data.get("bo_id")
-        if bo_id:
-            bo = cm.get_bo(bo_id)
-            if bo:
-                with st.expander(f"Voir Build Order: {bo[1]}"):
-                    st.markdown(bo[3])
+    for civ_id, civ_name in [civ1, civ2]:
+        data = cm.get_civ(civ_id)
+        st.markdown(f"### {civ_name}")
+        st.write("- " + data.get("remarque", "Aucune remarque enregistrée."))
 
+        civ_bos = cm.get_civ_bos(civ_id)
+        if civ_bos:
+            for bo_id, titre, desc, ordre in civ_bos:
+                with st.expander(f"BO {ordre}: {titre}"):
+                    st.markdown(desc)
+        else:
+            st.info("Aucun BO associé.")
+
+
+# ---------------------------
+# Mode Édition de civ
+# ---------------------------
 elif mode == "Édition de civ":
     st.title("🛠️ Édition d'une civilisation")
-    civs = cm.list_civs()
-    civ_name = st.selectbox("Choisir une civilisation", civs)
-
-    civ = cm.get_civ(civ_name)
-    if civ is None:
-        st.warning("Civilisation non trouvée.")
+    civs = cm.list_civs()  # [(id, nom), ...]
+    if not civs:
+        st.warning("Aucune civilisation en base.")
     else:
-        st.subheader(f"Édition: {civ_name}")
-        cols = st.columns(4)
-        early = cols[0].number_input("Early", value=civ["early"], step=1)
-        mid = cols[1].number_input("Mid", value=civ["mid"], step=1)
-        late = cols[2].number_input("Late", value=civ["late"], step=1)
-        very_late = cols[3].number_input("Very late", value=civ["very_late"], step=1)
+        civ_selection = st.selectbox("Choisir une civilisation", civs, format_func=lambda x: x[1])
+        civ_id, civ_name = civ_selection
 
-        remarque = st.text_area("Remarque", value=civ.get("remarque",""))
+        civ = cm.get_civ(civ_id)
+        if civ is None:
+            st.warning("Civilisation non trouvée.")
+        else:
+            st.subheader(f"Édition: {civ['nom']}")
+            cols = st.columns(4)
+            early = cols[0].number_input("Early", value=civ["early"], step=1)
+            mid = cols[1].number_input("Mid", value=civ["mid"], step=1)
+            late = cols[2].number_input("Late", value=civ["late"], step=1)
+            very_late = cols[3].number_input("Very late", value=civ["very_late"], step=1)
 
-        bos = cm.get_bos()
-        bo_dict = {f"{b[1]} ({b[0]})": b[0] for b in bos}
-        bo_choice = st.selectbox("Build Order associé (facultatif)", ["Aucun"] + list(bo_dict.keys()))
-        bo_id = bo_dict.get(bo_choice, None) if bo_choice != "Aucun" else None
+            remarque = st.text_area("Remarque", value=civ.get("remarque", ""))
 
-        if st.button("Sauvegarder"):
-            cm.update_civ(civ_name, early, mid, late, very_late, remarque, bo_id)
-            st.success("Civilisation mise à jour.")
+            # --- Gestion des BO associés ---
+            st.subheader("📜 Build Orders associés")
+            civ_bos = cm.get_civ_bos(civ_id)
+            if not civ_bos:
+                st.info("Aucun BO associé.")
+            else:
+                for bo_id, titre, desc, ordre in civ_bos:
+                    col1, col2, col3 = st.columns([3, 1, 1])
+                    col1.markdown(f"**{titre}**  — ordre {ordre}")
+                    # Up / Down / Remove — protéger par try/except
+                    if col2.button("⬆️", key=f"up_{bo_id}"):
+                        try:
+                            cm.add_bo_to_civ(civ_id, bo_id, ordre-1)
+                            st.success("Ordre mis à jour")
+                        except Exception as e:
+                            st.error(f"Erreur: {e}")
+                        st.rerun()
+                    if col2.button("⬇️", key=f"down_{bo_id}"):
+                        try:
+                            cm.add_bo_to_civ(civ_id, bo_id, ordre+1)
+                            st.success("Ordre mis à jour")
+                        except Exception as e:
+                            st.error(f"Erreur: {e}")
+                        st.rerun()
+                    if col3.button("❌", key=f"remove_{bo_id}"):
+                        try:
+                            cm.remove_bo_from_civ(civ_id, bo_id)
+                            st.success("Association supprimée")
+                        except Exception as e:
+                            st.error(f"Erreur: {e}")
+                        st.rerun()
 
+            # --- Ajout d'un nouveau BO (via form pour éviter doubles clics) ---
+            st.subheader("➕ Associer un nouveau BO")
+            all_bos = cm.get_bos()  # [(id, titre), ...]
+            used_ids = [b[0] for b in civ_bos]
+            available_bos = [b for b in all_bos if b[0] not in used_ids]
+
+            if available_bos:
+                bo_map = {f"{b[1]} (id={b[0]})": b[0] for b in available_bos}
+                with st.form("assoc_bo_form"):
+                    choice = st.selectbox("Sélectionner un BO", ["Aucun"] + list(bo_map.keys()))
+                    submit_assoc = st.form_submit_button("Associer ce BO")
+                    if submit_assoc:
+                        if choice != "Aucun":
+                            bo_id_to_link = bo_map[choice]
+                            try:
+                                cm.add_bo_to_civ(civ_id, bo_id_to_link, ordre=None)
+                                st.success("BO associé à la civilisation ✅")
+                            except Exception as e:
+                                st.error(f"Erreur lors de l'association: {e}")
+                            st.rerun()
+            else:
+                st.info("Tous les BO sont déjà associés à cette civ.")
+
+            # --- Sauvegarde des infos de la civ ---
+            if st.button("💾 Sauvegarder infos civ"):
+                try:
+                    cm.update_civ(civ_id, civ_name, early, mid, late, very_late, remarque)
+                    st.success("Civilisation mise à jour ✅")
+                except Exception as e:
+                    st.error(f"Erreur de sauvegarde: {e}")
+
+# ---------------------------
+# Mode BO
+# ---------------------------
 elif mode == "BO":
     st.title("📜 Liste des Build Orders")
 
@@ -85,6 +166,5 @@ elif mode == "BO":
             submitted = st.form_submit_button("Créer")
             if submitted and titre.strip():
                 cm.insert_bo(titre, description)
-                print("Test")
                 st.success("✅ BO créé avec succès")
                 st.rerun()
