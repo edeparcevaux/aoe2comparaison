@@ -60,7 +60,7 @@ elif mode == "Édition de civ":
 
         remarque = st.text_area("Remarque", value=civ.get("remarque",""))
 
-        bos = cm.list_bos()
+        bos = cm.get_bos()
         bo_dict = {f"{b[1]} ({b[0]})": b[0] for b in bos}
         bo_choice = st.selectbox("Build Order associé (facultatif)", ["Aucun"] + list(bo_dict.keys()))
         bo_id = bo_dict.get(bo_choice, None) if bo_choice != "Aucun" else None
@@ -70,32 +70,21 @@ elif mode == "Édition de civ":
             st.success("Civilisation mise à jour.")
 
 elif mode == "BO":
-    st.title("📜 Associer un ou plusieurs Build Orders à une civilisation")
+    st.title("📜 Liste des Build Orders")
 
-    civs = cm.get_civs()
-    civ_map = {nom: id for id, nom in civs}
-    civ_choice = st.selectbox("Choisir une civilisation", list(civ_map.keys()))
-    civ_id = civ_map[civ_choice]
+    bos = cm.get_bos()
+    for bo_id, titre in bos:
+        if st.button(f"✏️ {titre}", key=f"edit_{bo_id}"):
+            st.session_state["edit_bo_id"] = bo_id
+            st.switch_page("pages/Edit_BO.py")  # page suivante
 
-    # Formulaire pour ajouter un nouveau BO
-    with st.form("add_bo_form"):
-        titre = st.text_input("Titre du BO")
-        description = st.text_area("Description du BO")
-        submitted = st.form_submit_button("Ajouter et associer")
-        if submitted:
-            if titre.strip():
-                bo_id = cm.insert_bo(titre, description)
-                cm.link_bo_to_civ(civ_id, bo_id)
-                st.success(f"✅ BO '{titre}' ajouté et lié à {civ_choice}")
-            else:
-                st.error("⚠️ Le titre du BO est obligatoire.")
-
-    # Afficher les BOs liés à la civ
-    st.subheader(f"📂 Build Orders pour {civ_choice}")
-    bos = cm.get_bos_for_civ(civ_id)
-    if bos:
-        for bo_id, titre, description in bos:
-            with st.expander(f"📌 {titre}"):
-                st.write(description)
-    else:
-        st.info("Aucun BO associé à cette civilisation.")
+    with st.expander("➕ Créer un nouveau BO"):
+        with st.form("new_bo_form"):
+            titre = st.text_input("Titre")
+            description = st.text_area("Description")
+            submitted = st.form_submit_button("Créer")
+            if submitted and titre.strip():
+                cm.insert_bo(titre, description)
+                print("Test")
+                st.success("✅ BO créé avec succès")
+                st.rerun()
