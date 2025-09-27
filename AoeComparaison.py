@@ -10,12 +10,13 @@ cm = CivManager()
 # ---------------------------
 mode = st.sidebar.radio("Mode", ["Comparateur de civs", "Édition de civ"])
 
+
 if mode == "Comparateur de civs":
     st.title("⚔️ Comparateur de civilisations")
 
     civs = cm.list_civs()
-    civ1 = st.selectbox("Choisir la première civilisation", civs)
-    civ2 = st.selectbox("Choisir la seconde civilisation", civs)
+    civ1 = st.sidebar.selectbox('Civ 1', civs, index=civs.index('Vikings'))
+    civ2 = st.sidebar.selectbox('Civ 2', civs, index=civs.index('Malais'))
 
     df = cm.load_all_as_df()
     comp_df = df[df["Civ"].isin([civ1, civ2])].set_index("Civ")[["Early", "Mid", "Late", "Very late"]]
