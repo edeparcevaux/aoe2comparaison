@@ -8,7 +8,7 @@ cm = CivManager()
 # ---------------------------
 # Sidebar: choix mode
 # ---------------------------
-mode = st.sidebar.radio("Mode", ["Comparateur de civs", "Édition de civ"])
+mode = st.sidebar.radio("Mode", ["Comparateur de civs", "Édition de civ", "BO"])
 
 
 if mode == "Comparateur de civs":
@@ -68,3 +68,34 @@ elif mode == "Édition de civ":
         if st.button("Sauvegarder"):
             cm.update_civ(civ_name, early, mid, late, very_late, remarque, bo_id)
             st.success("Civilisation mise à jour.")
+
+elif mode == "BO":
+    st.title("📜 Associer un ou plusieurs Build Orders à une civilisation")
+
+    civs = cm.get_civs()
+    civ_map = {nom: id for id, nom in civs}
+    civ_choice = st.selectbox("Choisir une civilisation", list(civ_map.keys()))
+    civ_id = civ_map[civ_choice]
+
+    # Formulaire pour ajouter un nouveau BO
+    with st.form("add_bo_form"):
+        titre = st.text_input("Titre du BO")
+        description = st.text_area("Description du BO")
+        submitted = st.form_submit_button("Ajouter et associer")
+        if submitted:
+            if titre.strip():
+                bo_id = cm.insert_bo(titre, description)
+                cm.link_bo_to_civ(civ_id, bo_id)
+                st.success(f"✅ BO '{titre}' ajouté et lié à {civ_choice}")
+            else:
+                st.error("⚠️ Le titre du BO est obligatoire.")
+
+    # Afficher les BOs liés à la civ
+    st.subheader(f"📂 Build Orders pour {civ_choice}")
+    bos = cm.get_bos_for_civ(civ_id)
+    if bos:
+        for bo_id, titre, description in bos:
+            with st.expander(f"📌 {titre}"):
+                st.write(description)
+    else:
+        st.info("Aucun BO associé à cette civilisation.")
