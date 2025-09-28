@@ -36,28 +36,42 @@ if mode == "Comparateur de civs":
     comp_df = df[df["Civ"].isin([civ1[1], civ2[1]])].set_index("Civ")[["Early", "Mid", "Late", "Very late"]]
     comp_df = comp_df.fillna(0).astype(int)
 
-    st.subheader("Graphique comparatif")
-    fig, ax = plt.subplots()
-    comp_df.T.plot(kind="line", marker="o", ax=ax)
-    ax.set_ylabel("Score")
-    st.pyplot(fig)
+    with st.expander("📊 Graphique comparatif"):
+        col1, col2 = st.columns([2,1])
+        with col1:
+            st.subheader("Graphique comparatif")
+            fig, ax = plt.subplots(figsize=(4,2.5))
+            comp_df.T.plot(kind="line", marker="o", ax=ax)
+            ax.set_ylabel("Score")
+            st.pyplot(fig)
+        with col2:
+            st.info("📊 Comparaison simplifiée")
 
     # --- Remarques & BO
     st.markdown("---")
     st.subheader("Remarques & Build Orders")
-    for civ_id, civ_name in [civ1, civ2]:
-        data = cm.get_civ(civ_id)
-        st.markdown(f"### {civ_name}")
-        st.write("- " + data.get("remarque", "Aucune remarque enregistrée."))
 
-        civ_bos = cm.get_civ_bos(civ_id)
-        if civ_bos:
-            for bo_id, titre, desc, ordre in civ_bos:
-                with st.expander(f"BO {ordre}: {titre}"):
-                    st.markdown(desc)
-        else:
-            st.info("Aucun BO associé.")
+    cols = st.columns(2)  # 2 colonnes côte à côte
 
+    for i, (civ_id, civ_name) in enumerate([civ1, civ2]):
+        with cols[i]:
+            st.markdown(f"### {civ_name}")
+
+            # Remarque
+            data = cm.get_civ(civ_id)
+            st.write("**Remarques :**")
+            st.write(data.get("remarque", "Aucune remarque enregistrée."))
+
+            st.write("---")
+            # BO
+            st.write("**Build Orders :**")
+            civ_bos = cm.get_civ_bos(civ_id)
+            if civ_bos:
+                for bo_id, titre, desc, ordre in civ_bos:
+                    with st.expander(f"BO {ordre}: {titre}"):
+                        st.markdown(desc)
+            else:
+                st.info("Aucun BO associé.")
 
 # ---------------------------
 # Mode Édition de civ
