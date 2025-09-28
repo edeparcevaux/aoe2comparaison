@@ -10,7 +10,7 @@ if "edit_bo_id" not in st.session_state:
     st.error("⚠️ Aucun BO sélectionné")
 else:
     bo_id = st.session_state["edit_bo_id"]
-    titre, description = cm.get_bo(bo_id)
+    bo_id, titre, description = cm.get_bo(bo_id)
 
     st.title(f"✏️ Modifier BO : {titre}")
     with st.form("edit_bo_form"):
