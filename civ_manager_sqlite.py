@@ -118,3 +118,10 @@ class CivManager:
                     "Remarque": civ.get("remarque", "")
                 })
         return pd.DataFrame(data)
+
+    def update_bo(self, bo_id, titre, description):
+        """Met à jour un build order existant"""
+        supabase.table("bos").update({
+            "titre": titre,
+            "description": description
+        }).eq("id", bo_id).execute()
