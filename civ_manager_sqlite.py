@@ -1,12 +1,13 @@
-# civ_manager_supabase.py
 import pandas as pd
-from client_supabase import supabase  # ton supabase déjà configuré
+from client_supabase import supabase
+import streamlit as st
 
 class CivManager:
 
     # ----------------------------
     # Civilizations
     # ----------------------------
+    @st.cache_data(ttl=600)
     def list_civs(self):
         """Retourne la liste des civs (id, nom)"""
         response = supabase.table("civs").select("id, nom").execute()
@@ -14,6 +15,7 @@ class CivManager:
             return []
         return [(c["id"], c["nom"]) for c in response.data]
 
+    @st.cache_data(ttl=600)
     def get_civs(self):
         """Retourne toutes les civilisations (id, nom)"""
         response = supabase.table("civs").select("id, nom").order("nom").execute()
@@ -21,6 +23,7 @@ class CivManager:
             return []
         return [(row["id"], row["nom"]) for row in response.data]
 
+    @st.cache_data(ttl=600)
     def get_civ(self, civ_id):
         """Retourne une civilisation complète"""
         response = supabase.table("civs").select("*").eq("id", civ_id).single().execute()
@@ -41,6 +44,7 @@ class CivManager:
     # ----------------------------
     # Build Orders
     # ----------------------------
+    @st.cache_data(ttl=600)
     def get_bos(self):
         """Retourne la liste de tous les BO"""
         response = supabase.table("bos").select("id, titre").execute()
@@ -51,12 +55,14 @@ class CivManager:
     def insert_bo(self, titre, description):
         supabase.table("bos").insert({"titre": titre, "description": description}).execute()
 
+    @st.cache_data(ttl=600)
     def get_bo(self, bo_id):
         response = supabase.table("bos").select("*").eq("id", bo_id).single().execute()
         if response.data is None:
             return None
         return response.data
 
+    @st.cache_data(ttl=600)
     def get_civ_bos(self, civ_id):
         """Retourne la liste des BO associés à une civ, triés par ordre"""
         response = supabase.table("civ_bos").select("bo_id, ordre, bos(titre, description)").eq("civ_id", civ_id).execute()
@@ -91,6 +97,7 @@ class CivManager:
     # ----------------------------
     # DataFrame pour comparateur
     # ----------------------------
+    @st.cache_data(ttl=600)
     def load_all_as_df(self):
         civs = self.get_civs()
         data = []

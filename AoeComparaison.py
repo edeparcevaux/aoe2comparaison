@@ -17,53 +17,40 @@ mode = st.sidebar.radio("Mode", ["Comparateur de civs", "Édition de civ", "BO"]
 if mode == "Comparateur de civs":
     st.title("⚔️ Comparateur de civilisations")
 
-    civs = cm.list_civs()  # [(id, nom), ...]
-    civ1 = st.sidebar.selectbox(
-        "Civ 1",
-        civs,
-        format_func=lambda x: x[1],
-        index=[c[1] for c in civs].index("Vikings")
-    )
-    civ2 = st.sidebar.selectbox(
-        "Civ 2",
-        civs,
-        format_func=lambda x: x[1],
-        index=[c[1] for c in civs].index("Malais")
-    )
+    # Civs chargées une seule fois grâce au cache
+    civs = cm.list_civs()
 
-    # DataFrame avec scores
+    # Initialisation session_state pour éviter rechargement
+    if "civ1" not in st.session_state:
+        st.session_state.civ1 = [c for c in civs if c[1] == "Vikings"][0]
+    if "civ2" not in st.session_state:
+        st.session_state.civ2 = [c for c in civs if c[1] == "Malais"][0]
+
+    civ1 = st.sidebar.selectbox("Civ 1", civs, format_func=lambda x: x[1], key="civ1")
+    civ2 = st.sidebar.selectbox("Civ 2", civs, format_func=lambda x: x[1], key="civ2")
+
+    # DataFrame
     df = cm.load_all_as_df()
-    comp_df = df[df["Civ"].isin([civ1[1], civ2[1]])].set_index("Civ")[["Early", "Mid", "Late", "Very late"]]
-    comp_df = comp_df.fillna(0).astype(int)
+    comp_df = df[df["Civ"].isin([civ1[1], civ2[1]])].set_index("Civ")[["Early", "Mid", "Late", "Very late"]].fillna(0).astype(int)
 
     with st.expander("📊 Graphique comparatif"):
-        col1, col2 = st.columns([2,1])
-        with col1:
-            st.subheader("Graphique comparatif")
-            fig, ax = plt.subplots(figsize=(4,2.5))
-            comp_df.T.plot(kind="line", marker="o", ax=ax)
-            ax.set_ylabel("Score")
-            st.pyplot(fig)
-        with col2:
-            st.info("📊 Comparaison simplifiée")
+        fig, ax = plt.subplots(figsize=(4,2.5))
+        comp_df.T.plot(kind="line", marker="o", ax=ax)
+        ax.set_ylabel("Score")
+        st.pyplot(fig)
 
-    # --- Remarques & BO
     st.markdown("---")
     st.subheader("Remarques & Build Orders")
 
-    cols = st.columns(2)  # 2 colonnes côte à côte
-
-    for i, (civ_id, civ_name) in enumerate([civ1, civ2]):
+    cols = st.columns(2)
+    for i, civ in enumerate([civ1, civ2]):
+        civ_id, civ_name = civ
         with cols[i]:
             st.markdown(f"### {civ_name}")
-
-            # Remarque
             data = cm.get_civ(civ_id)
             st.write("**Remarques :**")
             st.write(data.get("remarque", "Aucune remarque enregistrée."))
-
             st.write("---")
-            # BO
             st.write("**Build Orders :**")
             civ_bos = cm.get_civ_bos(civ_id)
             if civ_bos:
