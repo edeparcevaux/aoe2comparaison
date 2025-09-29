@@ -1,0 +1,3 @@
+libatlas-base-dev
+libfreetype6-dev
+libpng-dev
