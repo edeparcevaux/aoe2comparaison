@@ -7,24 +7,27 @@ class CivManager:
     # ----------------------------
     # Civilizations
     # ----------------------------
+    @staticmethod
     @st.cache_data(ttl=600)
-    def list_civs(self):
+    def list_civs():
         """Retourne la liste des civs (id, nom)"""
         response = supabase.table("civs").select("id, nom").execute()
         if response.data is None:
             return []
         return [(c["id"], c["nom"]) for c in response.data]
 
+    @staticmethod
     @st.cache_data(ttl=600)
-    def get_civs(self):
+    def get_civs():
         """Retourne toutes les civilisations (id, nom)"""
         response = supabase.table("civs").select("id, nom").order("nom").execute()
         if response.data is None:
             return []
         return [(row["id"], row["nom"]) for row in response.data]
 
+    @staticmethod
     @st.cache_data(ttl=600)
-    def get_civ(self, civ_id):
+    def get_civ(civ_id):
         """Retourne une civilisation complète"""
         response = supabase.table("civs").select("*").eq("id", civ_id).single().execute()
         if response.data is None:
@@ -44,8 +47,9 @@ class CivManager:
     # ----------------------------
     # Build Orders
     # ----------------------------
+    @staticmethod
     @st.cache_data(ttl=600)
-    def get_bos(self):
+    def get_bos():
         """Retourne la liste de tous les BO"""
         response = supabase.table("bos").select("id, titre").execute()
         if response.data is None:
@@ -55,15 +59,17 @@ class CivManager:
     def insert_bo(self, titre, description):
         supabase.table("bos").insert({"titre": titre, "description": description}).execute()
 
+    @staticmethod
     @st.cache_data(ttl=600)
-    def get_bo(self, bo_id):
+    def get_bo(bo_id):
         response = supabase.table("bos").select("*").eq("id", bo_id).single().execute()
         if response.data is None:
             return None
         return response.data
 
+    @staticmethod
     @st.cache_data(ttl=600)
-    def get_civ_bos(self, civ_id):
+    def get_civ_bos(civ_id):
         """Retourne la liste des BO associés à une civ, triés par ordre"""
         response = supabase.table("civ_bos").select("bo_id, ordre, bos(titre, description)").eq("civ_id", civ_id).execute()
         if response.data is None:
@@ -79,12 +85,10 @@ class CivManager:
 
     def add_bo_to_civ(self, civ_id, bo_id, ordre=None):
         """Associe un BO à une civ, à un ordre donné ou à la fin"""
-        # Récupérer l'ordre max si non spécifié
         if ordre is None:
             existing = supabase.table("civ_bos").select("ordre").eq("civ_id", civ_id).order("ordre", desc=True).limit(1).execute()
             ordre = (existing.data[0]["ordre"] if existing.data else 0) + 1
 
-        # Vérifier si déjà associé
         existing = supabase.table("civ_bos").select("*").eq("civ_id", civ_id).eq("bo_id", bo_id).execute()
         if existing.data:
             supabase.table("civ_bos").update({"ordre": ordre}).eq("civ_id", civ_id).eq("bo_id", bo_id).execute()
@@ -97,12 +101,13 @@ class CivManager:
     # ----------------------------
     # DataFrame pour comparateur
     # ----------------------------
+    @staticmethod
     @st.cache_data(ttl=600)
-    def load_all_as_df(self):
-        civs = self.get_civs()
+    def load_all_as_df():
+        civs = CivManager.get_civs()
         data = []
         for civ_id, nom in civs:
-            civ = self.get_civ(civ_id)
+            civ = CivManager.get_civ(civ_id)
             if civ:
                 data.append({
                     "Civ": nom,
