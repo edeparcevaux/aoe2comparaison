@@ -1,13 +1,11 @@
 import streamlit as st
-import sqlite3
-from civ_manager_sqlite import CivManager
+from civ_manager import CivManager
 
 cm = CivManager()
 
 if "edit_bo_id" not in st.session_state:
     st.error("⚠️ Aucun BO sélectionné")
 else:
-    print(st.session_state)
     bo_id = st.session_state["edit_bo_id"]
     bo = cm.get_bo(bo_id)
 
