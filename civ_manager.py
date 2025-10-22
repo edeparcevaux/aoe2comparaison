@@ -155,3 +155,15 @@ class CivManager:
         supabase.table("civs_maps").update({
             "remarque": remarque
         }).eq("civ_id", civ_id).eq("map_id", map_id).execute()
+
+
+    def add_civ_to_map(self, civ_id, map_id, remarque=""):
+        supabase.table("civs_maps").insert({
+            "civ_id": civ_id,
+            "map_id": map_id,
+            "remarque": remarque
+        }).execute()
+
+    def remove_civ_from_map(self, civ_id, map_id):
+        """Supprime l'association entre une civilisation et une carte"""
+        supabase.table("civs_maps").delete().eq("civ_id", civ_id).eq("map_id", map_id).execute()
