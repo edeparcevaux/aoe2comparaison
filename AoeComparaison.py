@@ -7,7 +7,7 @@ cm = CivManager()
 # ---------------------------
 # Sidebar: choix mode
 # ---------------------------
-mode = st.sidebar.radio("Mode", ["Comparateur de civs", "Édition de civ", "BO"])
+mode = st.sidebar.radio("Mode", ["Comparateur de civs", "Édition de civ", "BO", "Cartes"])
 
 
 # ---------------------------
@@ -168,3 +168,53 @@ elif mode == "BO":
                 cm.insert_bo(titre, description)
                 st.success("✅ BO créé avec succès")
                 st.rerun()
+
+# ---------------------------
+# Mode Cartes
+# ---------------------------
+elif mode == "Cartes":
+    st.title("🗺️ Gestion des cartes")
+
+    maps = cm.get_all_maps()
+    if not maps:
+        st.info("Aucune carte disponible.")
+    else:
+        map_selection = st.selectbox("Choisir une carte", maps, format_func=lambda x: x["nom"])
+        map_id = map_selection["id"]
+
+        st.subheader(f"Carte : {map_selection['nom']}")
+        if "image_url" in map_selection and map_selection["image_url"]:
+            st.image(map_selection["image_url"], use_container_width=True)
+
+        # --- Remarque globale sur la carte ---
+        st.markdown("### 📝 Remarques générales")
+        remarque = st.text_area("Remarque", value=map_selection.get("remarque", ""))
+        if st.button("💾 Sauvegarder remarque"):
+            try:
+                cm.update_map(map_id, remarque)
+                st.success("Remarque mise à jour ✅")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Erreur: {e}")
+
+        # --- Civs associées à la carte ---
+        st.markdown("### ⚔️ Civilisations sur cette carte")
+        civs_for_map = cm.get_civs_for_map(map_id)
+        if not civs_for_map:
+            st.info("Aucune civilisation associée à cette carte.")
+        else:
+            for entry in civs_for_map:
+                civ = entry["civs"]
+                civ_remarque = entry.get("remarque", "")
+                with st.expander(civ["nom"]):
+                    new_remarque = st.text_area(
+                        f"Remarque pour {civ['nom']}",
+                        value=civ_remarque,
+                        key=f"map_civ_{map_id}_{civ['id']}"
+                    )
+                    if st.button(f"💾 Sauver remarque pour {civ['nom']}", key=f"save_{map_id}_{civ['id']}"):
+                        try:
+                            cm.update_civ_map_remarque(civ["id"], map_id, new_remarque)
+                            st.success("Remarque mise à jour ✅")
+                        except Exception as e:
+                            st.error(f"Erreur: {e}")

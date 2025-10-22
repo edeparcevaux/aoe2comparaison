@@ -30,8 +30,6 @@ class CivManager:
     def get_civ(civ_id):
         """Retourne une civilisation complète"""
         response = supabase.table("civs").select("*").eq("id", civ_id).single().execute()
-        if response.data is None:
-            return None
         return response.data
 
     def update_civ(self, civ_id, nom, early, mid, late, very_late, remarque=""):
@@ -125,3 +123,35 @@ class CivManager:
             "titre": titre,
             "description": description
         }).eq("id", bo_id).execute()
+
+    # --- Gestion des Cartes ---
+    def get_all_maps(self):
+        response = supabase.table("maps").select("*").execute()
+        return response.data
+
+    def get_map(self, map_id):
+        response = supabase.table("maps").select("*").eq("id", map_id).single().execute()
+        return response.data
+
+    def update_map(self, map_id, remarque):
+        supabase.table("maps").update({
+            "remarque": remarque
+        }).eq("id", map_id).execute()
+
+    # --- Liens entre BO / Civ / Carte ---
+    def get_bos_for_civ(self, civ_id):
+        response = supabase.table("bos_civs").select("bo_id, bos(*)").eq("civ_id", civ_id).execute()
+        return [r["bos"] for r in response.data]
+
+    def get_bos_for_map(self, map_id):
+        response = supabase.table("bos_maps").select("bo_id, bos(*)").eq("map_id", map_id).execute()
+        return [r["bos"] for r in response.data]
+
+    def get_civs_for_map(self, map_id):
+        response = supabase.table("civs_maps").select("civ_id, civs(*), remarque").eq("map_id", map_id).execute()
+        return response.data
+
+    def update_civ_map_remarque(self, civ_id, map_id, remarque):
+        supabase.table("civs_maps").update({
+            "remarque": remarque
+        }).eq("civ_id", civ_id).eq("map_id", map_id).execute()
