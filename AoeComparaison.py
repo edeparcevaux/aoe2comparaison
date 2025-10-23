@@ -7,7 +7,7 @@ cm = CivManager()
 # ---------------------------
 # Sidebar: choix mode
 # ---------------------------
-mode = st.sidebar.radio("Mode", ["Comparateur de civs", "Édition de civ", "BO"])
+mode = st.sidebar.radio("Mode", ["Comparateur de civs", "Édition de civ", "BO", "Cartes"])
 
 
 # ---------------------------
@@ -168,3 +168,90 @@ elif mode == "BO":
                 cm.insert_bo(titre, description)
                 st.success("✅ BO créé avec succès")
                 st.rerun()
+
+# ---------------------------
+# Mode Cartes
+# ---------------------------
+elif mode == "Cartes":
+    st.title("🗺️ Gestion des cartes")
+
+    maps = cm.get_all_maps()
+    if not maps:
+        st.info("Aucune carte disponible.")
+    else:
+        map_selection = st.selectbox("Choisir une carte", maps, format_func=lambda x: x["nom"])
+        map_id = map_selection["id"]
+
+        st.subheader(f"Carte : {map_selection['nom']}")
+        if "image_url" in map_selection and map_selection["image_url"]:
+            st.image(map_selection["image_url"], use_container_width=True)
+
+        # --- Remarque globale sur la carte ---
+        st.markdown("### 📝 Remarques générales")
+        remarque = st.text_area("Remarque", value=map_selection.get("remarque", ""))
+        if st.button("💾 Sauvegarder remarque"):
+            try:
+                cm.update_map(map_id, remarque)
+                st.success("Remarque mise à jour ✅")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Erreur: {e}")
+
+        # --- Civs associées à la carte ---
+        st.markdown("### ⚔️ Civilisations sur cette carte")
+        civs_for_map = cm.get_civs_for_map(map_id)
+        if not civs_for_map:
+            st.info("Aucune civilisation associée à cette carte.")
+        else:
+            for entry in civs_for_map:
+                civ = entry["civs"]
+                civ_remarque = entry.get("remarque", "")
+                with st.expander(civ["nom"]):
+                    new_remarque = st.text_area(
+                        f"Remarque pour {civ['nom']}",
+                        value=civ_remarque,
+                        key=f"map_civ_{map_id}_{civ['id']}"
+                    )
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        if st.button(f"💾 Sauver remarque", key=f"save_{map_id}_{civ['id']}"):
+                            try:
+                                cm.update_civ_map_remarque(civ["id"], map_id, new_remarque)
+                                st.success("Remarque mise à jour ✅")
+                            except Exception as e:
+                                st.error(f"Erreur: {e}")
+
+                    with col2:
+                        if st.button(f"❌ Retirer", key=f"remove_{map_id}_{civ['id']}"):
+                            try:
+                                cm.remove_civ_from_map(civ["id"], map_id)
+                                st.success(f"{civ['nom']} retirée de la carte ✅")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Erreur: {e}")
+
+
+                st.markdown("### ➕ Associer une nouvelle civilisation")
+
+                # Récupération de toutes les civs
+                all_civs = cm.list_civs()
+                used_civ_ids = [entry["civs"]["id"] for entry in civs_for_map]
+                available_civs = [c for c in all_civs if c[0] not in used_civ_ids]
+
+                if available_civs:
+                    civ_map = {c[1]: c[0] for c in available_civs}
+                    with st.form("assoc_civ_form"):
+                        civ_choice = st.selectbox("Civilisation à associer", ["Aucune"] + list(civ_map.keys()))
+                        remarque_init = st.text_area("Remarque initiale (optionnel)")
+                        submit_assoc = st.form_submit_button("Associer la civilisation")
+
+                        if submit_assoc and civ_choice != "Aucune":
+                            civ_id_to_link = civ_map[civ_choice]
+                            try:
+                                cm.add_civ_to_map(civ_id_to_link, map_id, remarque_init)
+                                st.success(f"Civilisation '{civ_choice}' associée à la carte ✅")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Erreur lors de l'association: {e}")
+                else:
+                    st.info("Toutes les civilisations sont déjà associées à cette carte.")
