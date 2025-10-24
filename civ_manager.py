@@ -167,3 +167,57 @@ class CivManager:
     def remove_civ_from_map(self, civ_id, map_id):
         """Supprime l'association entre une civilisation et une carte"""
         supabase.table("civs_maps").delete().eq("civ_id", civ_id).eq("map_id", map_id).execute()
+
+
+
+    def get_bos(self):
+        response = self.supabase.table("bos").select("id, titre").execute()
+        return [(r["id"], r["titre"]) for r in response.data]
+
+    def insert_bo(self, titre, description):
+        response = self.supabase.table("bos").insert({"titre": titre, "description": description}).execute()
+        return response.data[0]["id"]
+
+    def get_bo(self, bo_id):
+        response = self.supabase.table("bos").select("*").eq("id", bo_id).single().execute()
+        return response.data
+
+    def update_bo(self, bo_id, titre, description):
+        self.supabase.table("bos").update({"titre": titre, "description": description}).eq("id", bo_id).execute()
+
+    def delete_bo(self, bo_id):
+        self.supabase.table("bos").delete().eq("id", bo_id).execute()
+
+    # --- NOUVEAU : création + redirection vers édition ---
+    def create_bo_and_redirect(self, titre, description):
+        new_id = self.insert_bo(titre, description)
+        import streamlit as st
+        st.session_state["edit_bo_id"] = new_id
+        st.switch_page("pages/Edit_BO.py")
+
+    # --- GESTION DES ÉTAPES (table bo_steps) ---
+    def get_bo_steps(self, bo_id):
+        response = self.supabase.table("bo_steps").select("*").eq("bo_id", bo_id).order("ordre").execute()
+        return response.data
+
+    def insert_bo_step(self, bo_id, age, vils, task, note, ordre):
+        self.supabase.table("bo_steps").insert({
+            "bo_id": bo_id,
+            "age": age,
+            "vils": vils,
+            "task": task,
+            "note": note,
+            "ordre": ordre
+        }).execute()
+
+    def update_bo_step(self, step_id, age, vils, task, note, ordre):
+        self.supabase.table("bo_steps").update({
+            "age": age,
+            "vils": vils,
+            "task": task,
+            "note": note,
+            "ordre": ordre
+        }).eq("id", step_id).execute()
+
+    def delete_bo_step(self, step_id):
+        self.supabase.table("bo_steps").delete().eq("id", step_id).execute()
