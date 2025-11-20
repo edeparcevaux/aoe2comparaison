@@ -157,7 +157,7 @@ elif mode == "BO":
     for bo_id, titre in bos:
         if st.button(f"✏️ {titre}", key=f"edit_{bo_id}"):
             st.session_state["edit_bo_id"] = bo_id
-            st.switch_page("pages/Edit_BO.py")  # page suivante
+            st.switch_page("Edit_BO.py")  # page suivante
 
     with st.expander("➕ Créer un nouveau BO"):
         with st.form("new_bo_form"):
