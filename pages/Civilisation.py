@@ -1,6 +1,9 @@
+import streamlit as st
 from components.Tabs import civ_tabs
 from components.Civ_header import civ_header
 from components.Civ_stats import civ_stats_section
+from components.SelectCiv import SelectCiv
+from civ_manager import CivManager
 
 CIV_DATA = {
     "nom": "Vikings",
@@ -12,6 +15,12 @@ CIV_DATA = {
         "4v4": "Très bon boom.",
     },
 }
+cm = CivManager()
+
+col1 = st.columns(1)
+
+with col1:
+    civ1 = SelectCiv(cm, "civ1").render("Civilisation 1")
 
 civ_header(CIV_DATA)
 
