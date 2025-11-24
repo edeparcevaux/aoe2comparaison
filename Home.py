@@ -12,7 +12,7 @@ with col1:
     Card("🆚", "Match-up", "pages/MatchUp.py").render()
 
 with col2:
-    Card("🏛️", "Civilisations", "pages/Civilisations.py").render()
+    Card("🏛️", "Civilisations", "pages/Civilisation.py").render()
 
 with col3:
     Card("🗺️", "Cartes", "pages/Cartes.py").render()
